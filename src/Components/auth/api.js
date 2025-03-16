@@ -13,8 +13,9 @@ export const VIEW_ALL_PROPERTY=`${API_BASE_URL}/post/viewallpost`
 export const PROPERTY = (propertyId) => `${API_BASE_URL}/post/${propertyId}`
 
 
-export const USERS_DATA=`${API_BASE_URL}/api/admin/users`
+export const USERS_DATA=`${API_BASE_URL}/user/get_all_users`
 
-export const getImageUrl = (imagePath) => {
-    return `${process.env.REACT_APP_API_BASE_URL}${imagePath}`;
-};
+export const ADD_CATEGORY=(adminId)=>`${API_BASE_URL}/admin/addcategory/${adminId}`
+export const ADD_DISTRICT=(adminId)=>`${API_BASE_URL}/admin/addistrict/${adminId}`
+export const GET_DISTRICTS=`${API_BASE_URL}/admin/getdistrict`
+export const GET_CATEGORIES=`${API_BASE_URL}/admin/getcategory`

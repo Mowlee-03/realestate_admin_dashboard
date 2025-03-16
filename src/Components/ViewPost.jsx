@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'; // to access the id from the URL
 import { MapPin, Bed, Bath, Square } from 'lucide-react';
 import axios from 'axios';
 import { CircularProgress } from '@mui/material'; // MUI CircularProgress
-import { getImageUrl, PROPERTY, } from './auth/api'; // Adjust the import if necessary
+import { PROPERTY, } from './auth/api'; // Adjust the import if necessary
 
 const ViewPost = () => {
   const { id } = useParams();  // Extracting id from URL params
@@ -49,7 +49,7 @@ console.log(property);
           <div>
             <div className="relative h-96">
               <img
-                src={getImageUrl(property.image[0])}
+                src={property.image[0]}
                 alt={property.title}
                 className="absolute inset-0 w-full h-full object-cover rounded-lg"
               />
@@ -58,7 +58,7 @@ console.log(property);
               {property.image.slice(1).map((image, index) => (
                 <img
                   key={index}
-                  src={getImageUrl(image)}
+                  src={image}
                   alt={`Property view ${index + 2}`}
                   className="h-24 w-full object-cover rounded-lg"
                 />

@@ -177,7 +177,7 @@ const PropertyList = () => {
               <div className="relative h-48">
                 
                 <img
-                  src={`${process.env.REACT_APP_API_BASE_URL}${property.image[0]}`}
+                  src={property.image[0]}
                   alt={property.title}
                   className="w-full h-full object-fill"
                 />

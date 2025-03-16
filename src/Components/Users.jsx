@@ -3,6 +3,7 @@ import { Mail, Phone, Calendar, User } from 'lucide-react';
 import { Modal, Box, Typography, Button, CircularProgress } from '@mui/material';
 import axios from 'axios';
 import { USERS_DATA } from './auth/api';
+console.log(USERS_DATA);
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -10,6 +11,7 @@ const Users = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+console.log(users);
 
   // Function to fetch user data
   const fetchUserData = async () => {
@@ -18,6 +20,8 @@ const Users = () => {
       setUsers(response.data.data);
       setError('');  // Clear any previous error messages
     } catch (error) {
+      console.log(error);
+      
       setError('Failed to fetch user data. Please try again.');
     } finally {
       setLoading(false); // Stop loading

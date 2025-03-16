@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { LOGIN_ADMIN } from './api';
 import { Snackbar, Alert, CircularProgress } from '@mui/material';
-import { jwtDecode } from 'jwt-decode';
+import { UserContext } from '../../Provider/Userprovider'; // Import UserContext
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useContext(UserContext); // ✅ Use login function from context
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -44,20 +45,19 @@ const Login = () => {
     setLoading(true); // Show loader
 
     try {
-
-      const response = await axios.post(LOGIN_ADMIN, formData)
+      const response = await axios.post(LOGIN_ADMIN, formData);
       console.log(response);
-      
-    
-      setSnackbar({ open: true, message: 'Login successful', severity: 'success' })
-      const token=response.data.authToken
-      localStorage.setItem("user",token)
 
-      navigate('/');
-    } catch (error) {
+      const token = response.data.authToken;
+      console.log(token);
       
-      console.log(error)
-      setSnackbar({ open: true, message: error.response.data, severity: 'error' });
+      login(token); // ✅ Manually update user state
+
+      setSnackbar({ open: true, message: 'Login successful', severity: 'success' });
+      navigate('/'); // ✅ Navigate after setting user
+    } catch (error) {
+      console.log(error);
+      setSnackbar({ open: true, message: error.response?.data?.message || "Login failed", severity: 'error' });
     } finally {
       setLoading(false); // Hide loader
     }
