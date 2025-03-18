@@ -11,7 +11,7 @@ export const POST_PROPERTY=(adminId)=>`${API_BASE_URL}/post/create/${adminId}`
 export const UPLOAD_FILE=`${API_BASE_URL}/file/uploads`
 export const VIEW_ALL_PROPERTY=`${API_BASE_URL}/post/viewallpost`
 export const PROPERTY = (propertyId) => `${API_BASE_URL}/post/${propertyId}`
-
+export const UPDATE_PROPERTY=`${API_BASE_URL}/`
 
 export const USERS_DATA=`${API_BASE_URL}/user/get_all_users`
 

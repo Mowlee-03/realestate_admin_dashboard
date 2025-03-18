@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Square, Search, Filter, XCircle } from 'lucide-react'; 
+import { MapPin, Bed, Bath, Square, Search, Filter, XCircle, Tag, AlertCircle } from 'lucide-react'; 
 import axios from 'axios';
-import { CircularProgress } from '@mui/material'; // Import CircularProgress for the loader
+import { CircularProgress } from '@mui/material';
 import { VIEW_ALL_PROPERTY } from './auth/api';
 
 const PropertyList = () => {
@@ -12,37 +12,40 @@ const PropertyList = () => {
     priceRange: 'all',
     bedrooms: 'all',
     category: 'all',
+    soldStatus: 'all'
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(false); // Loading state
-  const [error, setError] = useState(null); // Error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProperties = async () => {
-      setLoading(true); // Start loading
-      setError(null); // Reset error
+      setLoading(true);
+      setError(null);
       try {
         const response = await axios.get(VIEW_ALL_PROPERTY);
         setProperties(response.data.data);
       } catch (error) {
         setError('Failed to fetch properties. Please check your internet connection.');
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
 
     fetchProperties();
   }, []);
   
-
   const filteredProperties = properties.filter(property => {
     const matchesSearch = property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          property.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filters.type === 'all' || property.type === filters.type;
-    const matchesBedrooms = filters.bedrooms === 'all' || property.bedrooms === parseInt(filters.bedrooms);
-    const matchesCategory = filters.category === 'all' || property.category === filters.category;
+    const matchesBedrooms = filters.bedrooms === 'all' || property.bedroom === parseInt(filters.bedrooms);
+    const matchesCategory = filters.category === 'all' || property.category_name === filters.category;
+    const matchesSoldStatus = filters.soldStatus === 'all' || 
+                              (filters.soldStatus === 'sold' && property.isSold) || 
+                              (filters.soldStatus === 'available' && !property.isSold);
     const matchesPriceRange = filters.priceRange === 'all' || (() => {
       const price = property.price;
       switch(filters.priceRange) {
@@ -54,10 +57,8 @@ const PropertyList = () => {
       }
     })();
 
-    return matchesSearch && matchesType && matchesBedrooms && matchesCategory && matchesPriceRange;
+    return matchesSearch && matchesType && matchesBedrooms && matchesCategory && matchesPriceRange && matchesSoldStatus;
   });
-  console.log(filteredProperties);
-
 
   // Function to reset filters
   const clearFilters = () => {
@@ -66,160 +67,247 @@ const PropertyList = () => {
       priceRange: 'all',
       bedrooms: 'all',
       category: 'all',
+      soldStatus: 'all'
     });
   };
 
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-start md:items-center mb-6 gap-4 max-lg:justify-around">
-        <h1 className="text-2xl font-bold">Properties</h1>
-        <button
-          onClick={() => navigate('/posts')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          Add New Property
-        </button>
-      </div>
+  const formatPrice = (price, type) => {
+    if (price >= 100000) {
+      return `₹${(price / 100000).toFixed(2)} Lac${type === 'rent' ? '/month' : ''}`;
+    } else {
+      return `₹${price.toLocaleString()}${type === 'rent' ? '/month' : ''}`;
+    }
+  };
 
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search properties by title,location..."
-              className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      {/* Admin Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex md:justify-between flex-col md:flex-row gap-2 items-center">
+          <h1 className="text-xl font-bold text-gray-800">Property Management</h1>
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+            onClick={() => navigate('/posts')}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition shadow-sm text-sm"
           >
-            <Filter size={20} />
-            <span>Filters</span>
+            Add New Property
           </button>
         </div>
-
-        {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-white rounded-md shadow-md">
-            <select
-              className="rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            >
-              <option value="all">All Types</option>
-              <option value="sale">For Sale</option>
-              <option value="rent">For Rent</option>
-            </select>
-
-            <select
-              className="rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-              value={filters.priceRange}
-              onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-            >
-              <option value="all">All Prices</option>
-              <option value="under-100k">Under ₹100k</option>
-              <option value="100k-500k">₹100k - ₹500k</option>
-              <option value="500k-1m">₹500k - ₹1M</option>
-              <option value="over-1m">Over ₹1M</option>
-            </select>
-
-            <select
-              className="rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-              value={filters.bedrooms}
-              onChange={(e) => setFilters({ ...filters, bedrooms: e.target.value })}
-            >
-              <option value="all">All Bedrooms</option>
-              <option value="1">1 Bedroom</option>
-              <option value="2">2 Bedrooms</option>
-              <option value="3">3 Bedrooms</option>
-              <option value="4">4+ Bedrooms</option>
-            </select>
-
-            <select
-              className="rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-              value={filters.category}
-              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            >
-              <option value="all">All Categories</option>
-              <option value="house">House</option>
-              <option value="apartment">Apartment</option>
-              <option value="villa">Villa</option>
-              <option value="condo">Condo</option>
-            </select>
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-            >
-              <XCircle size={20} />
-              Clear Filters
-            </button>
-          </div>
-        )}
       </div>
 
-      {loading ? (
-        <div className="flex justify-center">
-          <CircularProgress />
+      {/* Stats Section */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex flex-wrap gap-3">
+          <div className="bg-white shadow-sm rounded-md px-4 py-2 border-l-4 border-blue-500 min-w-32">
+            <p className="text-xs text-gray-500">Total Properties</p>
+            <p className="text-lg font-bold">{properties.length}</p>
+          </div>
+          <div className="bg-white shadow-sm rounded-md px-4 py-2 border-l-4 border-green-500 min-w-32">
+            <p className="text-xs text-gray-500">For Sale</p>
+            <p className="text-lg font-bold">{properties.filter(p => p.type === 'sale').length}</p>
+          </div>
+          <div className="bg-white shadow-sm rounded-md px-4 py-2 border-l-4 border-purple-500 min-w-32">
+            <p className="text-xs text-gray-500">For Rent</p>
+            <p className="text-lg font-bold">{properties.filter(p => p.type === 'rent').length}</p>
+          </div>
+          <div className="bg-white shadow-sm rounded-md px-4 py-2 border-l-4 border-yellow-500 min-w-32">
+            <p className="text-xs text-gray-500">Available</p>
+            <p className="text-lg font-bold">{properties.filter(p => !p.isSold).length}</p>
+          </div>
+          <div className="bg-white shadow-sm rounded-md px-4 py-2 border-l-4 border-red-500 min-w-32">
+            <p className="text-xs text-gray-500">Sold</p>
+            <p className="text-lg font-bold">{properties.filter(p => p.isSold).length}</p>
+          </div>
         </div>
-      ) : error ? (
-        <div className="text-red-500 text-center">{error}</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProperties.map((property) => (
-            <div
-              key={property.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition-transform hover:scale-[1.02]"
-              onClick={() => navigate(`/properties/${property.id}`)}
+      </div>
+
+      {/* Search and Filters */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="bg-white shadow-sm rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search properties..."
+                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200 sm:w-auto w-full"
             >
-              <div className="relative h-48">
-                
-                <img
-                  src={property.image[0]}
-                  alt={property.title}
-                  className="w-full h-full object-fill"
-                />
-                <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold ${
-                  property.type === 'sale' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
-                }`}>
-                  For {property.type === 'sale' ? 'Sale' : 'Rent'}
-                </span>
-              </div>
+              <Filter size={18} />
+              <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+            </button>
+          </div>
 
-              <div className="p-4">
-                <h2 className="text-xl font-semibold mb-2 truncate">{property.title}</h2>
-                <p className="text-lg font-bold text-blue-600 mb-2">
-                  {property.type === 'sale' 
-                    ? `$${property.price.toLocaleString()}`
-                    : `$${property.price.toLocaleString()}/month`}
-                </p>
+          {showFilters && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 bg-gray-50 p-3 rounded-md">
+              <select
+                className="p-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={filters.type}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              >
+                <option value="all">All Types</option>
+                <option value="sale">For Sale</option>
+                <option value="rent">For Rent</option>
+              </select>
 
-                <div className="flex items-center text-gray-600 mb-3">
-                  <MapPin size={16} className="mr-1" />
-                  <p className="text-sm truncate">{property.location}</p>
-                </div>
+              <select
+                className="p-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={filters.priceRange}
+                onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
+              >
+                <option value="all">All Prices</option>
+                <option value="under-100k">Under ₹100k</option>
+                <option value="100k-500k">₹100k - ₹500k</option>
+                <option value="500k-1m">₹500k - ₹1M</option>
+                <option value="over-1m">Over ₹1M</option>
+              </select>
 
-                <div className="grid grid-cols-3 gap-2 text-gray-600">
-                  <div className="flex items-center">
-                    <Bed size={16} className="mr-1" />
-                    <span className="text-sm">{property.bedroom}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Bath size={16} className="mr-1" />
-                    <span className="text-sm">{property.bathroom}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Square size={16} className="mr-1" />
-                    <span className="text-sm">{property.area} sqft</span>
-                  </div>
-                </div>
+              <select
+                className="p-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={filters.bedrooms}
+                onChange={(e) => setFilters({ ...filters, bedrooms: e.target.value })}
+              >
+                <option value="all">All Bedrooms</option>
+                <option value="1">1 Bedroom</option>
+                <option value="2">2 Bedrooms</option>
+                <option value="3">3 Bedrooms</option>
+                <option value="4">4+ Bedrooms</option>
+              </select>
+
+              <select
+                className="p-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={filters.category}
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              >
+                <option value="all">All Categories</option>
+                <option value="house">House</option>
+                <option value="apartment">Apartment</option>
+                <option value="villa">Villa</option>
+                <option value="condo">Condo</option>
+              </select>
+
+              <select
+                className="p-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={filters.soldStatus}
+                onChange={(e) => setFilters({ ...filters, soldStatus: e.target.value })}
+              >
+                <option value="all">All Status</option>
+                <option value="available">Available</option>
+                <option value="sold">Sold</option>
+              </select>
+
+              <div className="col-span-2 sm:col-span-3 md:col-span-5 flex justify-end mt-2">
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200 text-sm"
+                >
+                  <XCircle size={16} />
+                  <span>Clear</span>
+                </button>
               </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Property Listings */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <CircularProgress size={40} />
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md text-center">
+            <AlertCircle className="inline-block mr-2" size={20} />
+            <span>{error}</span>
+          </div>
+        ) : filteredProperties.length === 0 ? (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-md text-center">
+            <p className="font-medium">No properties match your filters</p>
+            <button 
+              className="mt-2 px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 text-sm"
+              onClick={clearFilters}
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Tag size={16} />
+                <span>{filteredProperties.length} properties found</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredProperties.map((property) => (
+                <div
+                  key={property.id}
+                  className="bg-white rounded-md shadow-sm overflow-hidden cursor-pointer border hover:shadow-md transition"
+                  onClick={() => navigate(`/properties/${property.id}`)}
+                >
+                  <div className="relative h-40">
+                    <img
+                      src={property.image[0]}
+                      alt={property.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                      }}
+                    />
+                    <div className="absolute top-0 left-0 w-full p-2 flex justify-between items-start">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        property.type === 'sale' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+                      }`}>
+                        {property.type === 'sale' ? 'Sale' : 'Rent'}
+                      </span>
+                      {property.isSold && (
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-red-500 text-white">
+                          SOLD
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-3">
+                    <h2 className="text-sm font-semibold mb-1 truncate">{property.title}</h2>
+                    
+                    <div className="flex items-center text-gray-500 mb-2">
+                      <MapPin size={14} className="mr-1 flex-shrink-0" />
+                      <p className="text-xs truncate">{property.location}, {property.district_name}</p>
+                    </div>
+
+                    <p className="text-base font-bold text-blue-600 mb-2">
+                      {formatPrice(property.price, property.type)}
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-1 text-xs text-gray-500">
+                      <div className="flex items-center">
+                        <Bed size={14} className="mr-1" />
+                        <span>{property.bedroom}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Bath size={14} className="mr-1" />
+                        <span>{property.bathroom}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Square size={14} className="mr-1" />
+                        <span>{property.area} sqft</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
