@@ -120,10 +120,10 @@ const PropertyList = () => {
               onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
             >
               <option value="all">All Prices</option>
-              <option value="under-100k">Under $100k</option>
-              <option value="100k-500k">$100k - $500k</option>
-              <option value="500k-1m">$500k - $1M</option>
-              <option value="over-1m">Over $1M</option>
+              <option value="under-100k">Under ₹100k</option>
+              <option value="100k-500k">₹100k - ₹500k</option>
+              <option value="500k-1m">₹500k - ₹1M</option>
+              <option value="over-1m">Over ₹1M</option>
             </select>
 
             <select

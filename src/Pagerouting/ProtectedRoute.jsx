@@ -4,7 +4,6 @@ import { UserContext } from '../Provider/Userprovider';
 
 const ProtectedRoute = ({ children }) => {
   const {user} = useContext(UserContext);
-  console.log(user)
   if (!user) {
     return <Navigate to="/login" />;
   }

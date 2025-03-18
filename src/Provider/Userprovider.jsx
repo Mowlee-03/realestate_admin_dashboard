@@ -1,10 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
-// Create the UserContext
 export const UserContext = createContext();
 
-// Create a Provider component
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
 
@@ -13,18 +11,25 @@ export const UserProvider = ({ children }) => {
         if (token) {
             try {
                 const decodedUser = jwtDecode(token);
-                setUser(decodedUser);
+
+                // ✅ Expiry check
+                if (decodedUser.exp * 1000 < Date.now()) {
+                    localStorage.removeItem("user"); // Remove expired token
+                    setUser(null); 
+                } else {
+                    setUser(decodedUser); // Set valid user data
+                }
             } catch (error) {
                 console.error("Failed to decode token:", error);
+                localStorage.removeItem("user"); // Clear invalid token
                 setUser(null);
             }
         }
     }, []);
 
-    // ✅ Function to manually update user state after login
     const login = (token) => {
         localStorage.setItem("user", token);
-        setUser(jwtDecode(token)); // Update user state immediately
+        setUser(jwtDecode(token));
     };
 
     const logout = () => {

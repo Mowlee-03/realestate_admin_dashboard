@@ -3,7 +3,7 @@ import { Mail, Phone, Calendar, User } from 'lucide-react';
 import { Modal, Box, Typography, Button, CircularProgress } from '@mui/material';
 import axios from 'axios';
 import { USERS_DATA } from './auth/api';
-console.log(USERS_DATA);
+
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -11,8 +11,8 @@ const Users = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-console.log(users);
 
+console.log(users)
   // Function to fetch user data
   const fetchUserData = async () => {
     try {
@@ -86,9 +86,6 @@ console.log(users);
                   Contact
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Login <br /> Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User Created <br /> Date
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -105,7 +102,7 @@ console.log(users);
                         {userImage(user)}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{user.username}</div>
                       </div>
                     </div>
                   </td>
@@ -117,14 +114,8 @@ console.log(users);
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Phone size={16} className="mr-2" />
-                        {user.phone}
+                        {user.phone_number}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar size={16} className="mr-2" />
-                      {user.activeAt ? new Date(user.activeAt).toLocaleString() : '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -133,14 +124,7 @@ console.log(users);
                       {new Date(user.createdAt).toLocaleString()}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleLocationClick(user.latitude, user.longitude)}
-                      className="text-green-600 hover:text-green-900 ml-4"
-                    >
-                      Show Location
-                    </button>
-                  </td>
+
                 </tr>
               ))}
             </tbody>
@@ -148,48 +132,7 @@ console.log(users);
         </div>
       </div>
 
-      {/* MUI Modal for displaying location */}
-      <Modal
-        open={open}
-        onClose={handleClose}
-        aria-labelledby="location-modal-title"
-        aria-describedby="location-modal-description"
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            bgcolor: 'white',
-            border: '2px solid #000',
-            boxShadow: 24,
-            p: 4,
-            width: 600,
-            borderRadius: 2,
-          }}
-        >
-          <Typography id="location-modal-title" variant="h6" component="h2">
-            User Location
-          </Typography>
-          {locationLink ? (
-            <iframe
-              title="user-location"
-              src={locationLink}
-              width="100%"
-              height="400"
-              style={{ border: 'none' }}
-            />
-          ) : (
-            <Typography id="location-modal-description" sx={{ mt: 2 }}>
-              No location available.
-            </Typography>
-          )}
-          <Button onClick={handleClose} sx={{ mt: 2 }} variant="contained">
-            Close
-          </Button>
-        </Box>
-      </Modal>
+
     </div>
   );
 };
