@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Share2, Heart, Upload, Trash2, Clock, Home, Tag, Info, Check } from 'lucide-react';
 import axios from 'axios';
-import { PROPERTY, UPDATE_PROPERTY } from './auth/api';
+import { PROPERTY, UPDATE_PROPERTY, UPLOAD_FILE } from './auth/api';
 
 const ViewPost = () => {
   const { id } = useParams();
@@ -43,6 +43,10 @@ const ViewPost = () => {
     setEditedProperty({ ...editedProperty, [name]: value });
   };
 
+  const handleToggleSold = () => {
+    setEditedProperty({ ...editedProperty, isSold: !editedProperty.isSold });
+  };
+
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -50,6 +54,8 @@ const ViewPost = () => {
       setProperty(editedProperty);
       setEditMode(false);
     } catch (error) {
+      console.log(error);
+      
       setError('Failed to update property.');
     } finally {
       setLoading(false);
@@ -100,14 +106,16 @@ const ViewPost = () => {
       setUploading(true);
       setImageUploadError('');
       const formData = new FormData();
-      formData.append('image', files[0]);
-      const response = await axios.post('/api/upload', formData, {
+      formData.append('images', files[0]);
+      const response = await axios.post(UPLOAD_FILE, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const imageUrl = response.data.url;
+      const imageUrl = response.data.imageUrls[0];
       const updatedImages = [...(editedProperty.image || []), imageUrl];
       setEditedProperty({ ...editedProperty, image: updatedImages });
     } catch (error) {
+      console.log(error);
+      
       setImageUploadError('Failed to upload image.');
     } finally {
       setUploading(false);
@@ -119,8 +127,6 @@ const ViewPost = () => {
     const updatedImages = editedProperty.image.filter((_, index) => index !== indexToRemove);
     setEditedProperty({ ...editedProperty, image: updatedImages });
   };
-
-
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
@@ -203,14 +209,13 @@ const ViewPost = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-               
-                <button 
+                {/* <button 
                   onClick={handleShare}
                   className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
                   title="Share property"
                 >
                   <Share2 size={20} />
-                </button>
+                </button> */}
                 {editMode ? (
                   <div className="flex gap-2">
                     <button
@@ -250,7 +255,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="price"
-                        value={property.price || ''}
+                        value={editedProperty.price || ''}
                         onChange={handleInputChange}
                         className="w-32 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
@@ -270,7 +275,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="bedroom"
-                        value={property.bedroom || ''}
+                        value={editedProperty.bedroom || ''}
                         onChange={handleInputChange}
                         className="w-16 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
@@ -286,7 +291,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="bathroom"
-                        value={property.bathroom || ''}
+                        value={editedProperty.bathroom || ''}
                         onChange={handleInputChange}
                         className="w-16 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
@@ -302,7 +307,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="area"
-                        value={property.area || ''}
+                        value={editedProperty.area || ''}
                         onChange={handleInputChange}
                         className="w-20 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
@@ -310,6 +315,33 @@ const ViewPost = () => {
                       <span className="text-gray-800 font-medium">{property.area} <span className="text-gray-600">sqft</span></span>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Sold Status Toggle */}
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                  <Home size={20} className="mr-2 text-indigo-500" />
+                  Property Status
+                </h3>
+                <div className="flex items-center">
+                  <span className="text-gray-700 mr-3">Sold:</span>
+                  {editMode ? (
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editedProperty.isSold || false}
+                        onChange={handleToggleSold}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-indigo-600 transition-colors"></div>
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                    </label>
+                  ) : (
+                    <span className={`font-medium ${property.isSold ? 'text-red-600' : 'text-green-600'}`}>
+                      {property.isSold ? 'Sold' : 'Available'}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -322,7 +354,7 @@ const ViewPost = () => {
                 {editMode ? (
                   <textarea
                     name="description"
-                    value={property.description || ''}
+                    value={editedProperty.description || ''}
                     onChange={handleInputChange}
                     rows={6}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -333,64 +365,7 @@ const ViewPost = () => {
                   </div>
                 )}
               </div>
-
-              {/* Features */}
-              {/* <div className="mb-6">
-                <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-                  <Check size={20} className="mr-2 text-indigo-500" />
-                  Property Features
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['Air Conditioning', 'Parking', 'Swimming Pool', 'Garden', 'Security System', 'Internet', 'Gym', 'Balcony', 'Fireplace'].map((feature, index) => (
-                    <div key={index} className="flex items-center bg-white p-3 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <span className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mr-2"></span>
-                      <span className="text-gray-700">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div> */}
             </div>
-
-            {/* Sidebar */}
-            {/* <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 sticky top-6">
-                <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-                  <Home size={20} className="mr-2 text-indigo-500" />
-                  Property Details
-                </h3>
-                <div className="space-y-4">
-                  <DetailItem label="Property ID" value={`#${id}`} />
-                  <DetailItem label="Property Type" value="Apartment" />
-                  <DetailItem label="Year Built" value="2018" />
-                  <DetailItem label="Parking Spaces" value="2" />
-                  <DetailItem label="Heating" value="Central" />
-                  <DetailItem label="Cooling" value="Central A/C" />
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-                    <Tag size={20} className="mr-2 text-indigo-500" />
-                    Listed By
-                  </h3>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                      JD
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-800">John Doe</h4>
-                      <p className="text-gray-500 text-sm">Real Estate Agent</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center text-gray-600 text-sm">
-                    <Clock size={16} className="mr-2 text-indigo-500" />
-                    Listed 3 days ago
-                  </div>
-                  <button className="mt-6 w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-colors shadow-md">
-                    Contact Agent
-                  </button>
-                </div>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
@@ -409,7 +384,7 @@ const ViewPost = () => {
   );
 };
 
-// Sub-components
+// Sub-components remain unchanged
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center min-h-screen bg-gray-50">
     <div className="relative">
@@ -502,13 +477,6 @@ const ImageEditor = ({ images, onDelete, onUpload, uploading, error, fileInputRe
         </button>
       </div>
     </div>
-  </div>
-);
-
-const DetailItem = ({ label, value }) => (
-  <div className="flex justify-between">
-    <span className="text-gray-500">{label}</span>
-    <span className="text-gray-800 font-medium">{value}</span>
   </div>
 );
 
