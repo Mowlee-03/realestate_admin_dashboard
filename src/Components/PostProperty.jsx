@@ -37,7 +37,7 @@ const CategoryModal = ({ open, onClose, onError, onSuccess, userId }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
-
+console.log(categoryData)
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -333,13 +333,10 @@ const PostProperty = () => {
       });
     }
   };
+console.log(formData);
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-        List Your Property
-      </Typography>
-      
       <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
@@ -439,18 +436,24 @@ const PostProperty = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField
+            <TextField
                 label="Area (sq ft)"
-                type="number"
+                type="text"
                 fullWidth
                 value={formData.area}
-                onChange={(e) => setFormData({ ...formData, area: Math.max(0, e.target.value) || '' })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || (/^\d*\.?\d*$/.test(value) && Number(value) >= 0)) {
+                    setFormData({ ...formData, area: value });
+                  }
+                }}
                 error={!!errors.area}
                 helperText={errors.area}
                 variant="outlined"
                 required
                 InputProps={{ inputProps: { min: 0 } }}
               />
+
             </Grid>
 
             <Grid item xs={12} md={6}>

@@ -92,7 +92,7 @@ const Users = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4 max-sm:flex-col max-sm:gap-3">
-        <h1 className="text-2xl font-bold text-center sm:text-left">Users</h1>
+       
         {error && (
           <Button variant="contained" color="primary" onClick={handleRefresh}>
             Refresh

@@ -17,6 +17,7 @@ const ViewPost = () => {
   const [uploading, setUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
   const fileInputRef = useRef(null);
+console.log(editedProperty);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -50,17 +51,26 @@ const ViewPost = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      await axios.put(UPDATE_PROPERTY(id), editedProperty);
-      setProperty(editedProperty);
+  
+      // Convert number fields explicitly
+      const payload = {
+        ...editedProperty,
+        price: parseInt(editedProperty.price) || 0,
+        bedroom: parseInt(editedProperty.bedroom) || 0,
+        bathroom: parseInt(editedProperty.bathroom) || 0,
+      };
+  
+      await axios.put(UPDATE_PROPERTY(id), payload);
+      setProperty(payload);
       setEditMode(false);
     } catch (error) {
       console.log(error);
-      
       setError('Failed to update property.');
     } finally {
       setLoading(false);
     }
   };
+  
 
   const handleImageClick = (image, index) => {
     setSelectedImage(image);
@@ -251,17 +261,18 @@ const ViewPost = () => {
                 <h2 className="text-2xl font-bold">
                   {editMode ? (
                     <div className="flex items-center">
-                      <span className="text-indigo-500 mr-1">$</span>
+                      <span className="text-indigo-500 mr-1">₹</span>
                       <input
                         type="number"
                         name="price"
+                         min="0"
                         value={editedProperty.price || ''}
                         onChange={handleInputChange}
                         className="w-32 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
                     </div>
                   ) : (
-                    <span className="text-indigo-600">${parseFloat(property.price).toLocaleString()}
+                    <span className="text-indigo-600">₹{parseFloat(property.price).toLocaleString()}
                       {property.type === 'rent' && <span className="text-indigo-400 text-xl">/month</span>}
                     </span>
                   )}
@@ -275,6 +286,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="bedroom"
+                         min="0"
                         value={editedProperty.bedroom || ''}
                         onChange={handleInputChange}
                         className="w-16 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -291,6 +303,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="bathroom"
+                         min="0"
                         value={editedProperty.bathroom || ''}
                         onChange={handleInputChange}
                         className="w-16 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -307,6 +320,7 @@ const ViewPost = () => {
                       <input
                         type="number"
                         name="area"
+                         min="0"
                         value={editedProperty.area || ''}
                         onChange={handleInputChange}
                         className="w-20 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"

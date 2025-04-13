@@ -81,18 +81,6 @@ const PropertyList = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Admin Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex md:justify-between flex-col md:flex-row gap-2 items-center">
-          <h1 className="text-xl font-bold text-gray-800">Property Management</h1>
-          <button
-            onClick={() => navigate('/posts')}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition shadow-sm text-sm"
-          >
-            Add New Property
-          </button>
-        </div>
-      </div>
 
       {/* Stats Section */}
       <div className="max-w-7xl mx-auto px-4 py-4">
@@ -141,6 +129,12 @@ const PropertyList = () => {
               <Filter size={18} />
               <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
             </button>
+            <button
+            onClick={() => navigate('/posts')}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition shadow-sm text-sm"
+          >
+            Add New Property
+          </button>
           </div>
 
           {showFilters && (

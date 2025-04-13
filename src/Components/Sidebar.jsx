@@ -1,13 +1,10 @@
-import React, { useContext, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Building2, Users, Menu, X, Plus,LogOut } from 'lucide-react';
-import LogoutModal from './auth/LogoutModal';
+import React, { useContext } from 'react';
+import { NavLink } from 'react-router-dom';
+import { Home, Building2, Users, Plus } from 'lucide-react';
 import { UserContext } from '../Provider/Userprovider';
 
-const Sidebar = ({ isOpen, toggleSidebar }) => {
-  const navigate = useNavigate();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const {user} = useContext(UserContext)
+const Sidebar = () => {
+  const { user } = useContext(UserContext);
 
   const menuItems = [
     { path: '/', icon: <Home size={20} />, label: 'Dashboard' },
@@ -16,91 +13,75 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { path: '/users', icon: <Users size={20} />, label: 'Users' },
   ];
 
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    setShowLogoutModal(false);
-    window.location.reload()
-    navigate('/login');
-  };
   return (
     <>
-     {/* Mobile menu button */}
-     <div className="lg:hidden fixed top-4 z-50 left-2 right-0 h-16 ">
-        <button
-          className="p-2 bg-white shadow-sm  rounded-md text-gray-600 hover:bg-gray-100"
-          onClick={toggleSidebar}
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-64 bg-white/90 backdrop-blur-lg shadow-xl">
         {/* Desktop header */}
-        <div className="hidden lg:block p-6">
-          <h1 className="text-2xl font-bold text-gray-800">Real Estate Admin</h1>
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+            Real Estate Admin
+          </h1>
         </div>
-        
-        {/* Mobile top spacing */}
-        <div className="h-16 lg:hidden" />
-        
+
         {/* Admin Profile Section */}
-        <div className="px-6 py-4 border-b">
+        <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex items-center space-x-3">
             <img
               src={user?.avatar}
               alt={user?.name}
-              className="h-10 w-10 rounded-full"
+              className="h-12 w-12 rounded-full border-2 border-blue-100 object-cover"
             />
             <div>
-              <h3 className="text-sm font-medium text-gray-900">{user?.name}</h3>
-              <p className="text-xs text-gray-500">{user?.email}</p>
+              <h3 className="text-sm font-semibold text-gray-900">{user?.name}</h3>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
           </div>
         </div>
-        
-        <nav className="flex-1 mt-6">
+
+        {/* Navigation */}
+        <nav className="flex-1 mt-4">
           {menuItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              onClick={() => window.innerWidth < 1024 && toggleSidebar()}
               className={({ isActive }) =>
-                `flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 ${
-                  isActive ? 'bg-gray-100 border-r-4 border-blue-500' : ''
+                `flex items-center mx-2 my-1 px-4 py-3 rounded-lg text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 font-medium shadow-sm'
+                    : ''
                 }`
               }
             >
               {item.icon}
-              <span className="ml-3">{item.label}</span>
+              <span className="ml-3 text-sm font-medium">{item.label}</span>
             </NavLink>
           ))}
         </nav>
-
-        {/* Logout Button */}
-        <div className="p-6 border-t">
-          <button
-            onClick={() => setShowLogoutModal(true)}
-            className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-          >
-            <LogOut size={20} />
-            <span className="ml-3">Logout</span>
-          </button>
-        </div>
       </aside>
 
-      <LogoutModal
-        open={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleLogout}
-      />
-      
-      
+      {/* Mobile Bottom Navbar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#1A1A1A] rounded-t-2xl shadow-lg border-t border-gray-800">
+        <nav className="flex justify-around items-center py-2 px-2">
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex flex-col items-center text-center px-2 py-1 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white text-[#1A1A1A] shadow-md'
+                    : 'text-gray-300 hover:text-gray-100'
+                }`
+              }
+              style={{ width: '20%' }} // Approximate equal width for 5 items
+            >
+              <div className="mb-1">{item.icon}</div>
+              <span className="text-xs">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </div>
     </>
   );
 };

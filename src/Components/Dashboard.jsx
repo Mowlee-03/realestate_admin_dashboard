@@ -1,11 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LineChart, BarChart, PieChart } from '@mui/x-charts';
-import { Building2, Users, DollarSign } from 'lucide-react';
+import { Building2, Users } from 'lucide-react';
+import axios from 'axios';
+import { PROPERTIES_IN_CATEGORY } from './auth/api';
 
 const Dashboard = () => {
-  // Mock data for user counts per month
+  const [propertiesInCategory, setPropertiesInCategory] = useState([]);
+
+  const fetchPropertiesInCategory = async () => {
+    try {
+      const response = await axios.get(PROPERTIES_IN_CATEGORY);
+      setPropertiesInCategory(response.data.data);
+    } catch (error) {
+      console.log('error:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPropertiesInCategory();
+  }, []);
+
+  // Convert fetched data to PieChart format
+  const dynamicCategoryData = {
+    series: [
+      {
+        data: propertiesInCategory.map((item) => ({
+          value: item._count.posts,
+          label: item.name.charAt(0).toUpperCase() + item.name.slice(1),
+        })),
+        highlightScope: { faded: 'global', highlighted: 'item' },
+        faded: { innerRadius: 30, additionalRadius: -30 },
+      },
+    ],
+    height: 300,
+    width: 600,
+  };
+
   const userChartData = {
-    xAxis: [{ 
+    xAxis: [{
       data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       scaleType: 'band',
     }],
@@ -18,25 +50,8 @@ const Dashboard = () => {
     ],
   };
 
-  // Mock data for property categories
-  const categoryData = {
-    series: [{
-      data: [
-        { value: 35, label: 'Houses' },
-        { value: 25, label: 'Apartments' },
-        { value: 20, label: 'Villas' },
-        { value: 15, label: 'Condos' },
-        { value: 5, label: 'Others' },
-      ],
-      highlightScope: { faded: 'global', highlighted: 'item' },
-      faded: { innerRadius: 30, additionalRadius: -30 },
-    }],
-    height: 200,
-  };
-
-  // Mock data for property listings trend
   const propertyTrendData = {
-    xAxis: [{ 
+    xAxis: [{
       data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       scaleType: 'band',
     }],
@@ -52,13 +67,10 @@ const Dashboard = () => {
   const stats = [
     { title: 'Total Properties', value: '156', icon: <Building2 /> },
     { title: 'Active Users', value: '2,345', icon: <Users /> },
-    // { title: 'Total Revenue', value: '$234,567', icon: <DollarSign /> },
   ];
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 max-lg:text-center">Dashboard</h1>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-lg shadow-md">
@@ -101,9 +113,9 @@ const Dashboard = () => {
         <h2 className="text-lg font-semibold mb-4">Properties by Category</h2>
         <div className="h-[300px] flex justify-center">
           <PieChart
-            series={categoryData.series}
-            height={300}
-            width={600}
+            series={dynamicCategoryData.series}
+            height={dynamicCategoryData.height}
+            width={dynamicCategoryData.width}
           />
         </div>
       </div>

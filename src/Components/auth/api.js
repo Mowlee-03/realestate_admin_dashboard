@@ -19,3 +19,4 @@ export const ADD_CATEGORY=(adminId)=>`${API_BASE_URL}/admin/addcategory/${adminI
 export const ADD_DISTRICT=(adminId)=>`${API_BASE_URL}/admin/addistrict/${adminId}`
 export const GET_DISTRICTS=`${API_BASE_URL}/admin/getdistrict`
 export const GET_CATEGORIES=`${API_BASE_URL}/admin/getcategory`
+export const PROPERTIES_IN_CATEGORY=`${API_BASE_URL}/admin/propety_in_category`
