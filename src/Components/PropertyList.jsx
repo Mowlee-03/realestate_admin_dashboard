@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Search, Filter, XCircle, Tag, AlertCircle } from 'lucide-react'; 
 import axios from 'axios';
 import { CircularProgress } from '@mui/material';
-import { VIEW_ALL_PROPERTY } from './auth/api';
+import { VIEW_ALL_PROPERTY, GET_CATEGORIES } from './auth/api';
 
 const PropertyList = () => {
   const navigate = useNavigate();
@@ -17,8 +17,19 @@ const PropertyList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [properties, setProperties] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Define price ranges
+  const priceRanges = [
+    { min: 0, max: 500000, label: 'Under ₹5,00,000', value: 'under-500k' },
+    { min: 500000, max: 1000000, label: '₹5,00,000 - ₹10,00,000', value: '500k-1m' },
+    { min: 1000000, max: 2000000, label: '₹10,00,000 - ₹20,00,000', value: '1m-2m' },
+    { min: 2000000, max: 3000000, label: '₹20,00,000 - ₹30,00,000', value: '2m-3m' },
+    { min: 4000000, max: 5000000, label: '₹40,00,000-50,00,000', value: '4m-5m' },
+    { min: 5000000, max: null, label: 'Over ₹50,00,000', value: 'over-5m' }
+  ];
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -34,7 +45,19 @@ const PropertyList = () => {
       }
     };
 
+    const getCategories = async () => {
+      try {
+        let Category = await axios.get(GET_CATEGORIES);
+        let dataofcategory = Category.data.data;
+        const categoryNames = dataofcategory.map((data) => data.name);
+        setCategories(categoryNames);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
     fetchProperties();
+    getCategories();
   }, []);
   
   const filteredProperties = properties.filter(property => {
@@ -48,12 +71,15 @@ const PropertyList = () => {
                               (filters.soldStatus === 'available' && !property.isSold);
     const matchesPriceRange = filters.priceRange === 'all' || (() => {
       const price = property.price;
-      switch(filters.priceRange) {
-        case 'under-100k': return price < 100000;
-        case '100k-500k': return price >= 100000 && price < 500000;
-        case '500k-1m': return price >= 500000 && price < 1000000;
-        case 'over-1m': return price >= 1000000;
-        default: return true;
+      if (filters.priceRange === 'all') return true;
+      
+      const selectedRange = priceRanges.find(range => range.value === filters.priceRange);
+      if (!selectedRange) return true;
+      
+      if (selectedRange.max === null) {
+        return price >= selectedRange.min;
+      } else {
+        return price >= selectedRange.min && price < selectedRange.max;
       }
     })();
 
@@ -130,11 +156,11 @@ const PropertyList = () => {
               <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
             </button>
             <button
-            onClick={() => navigate('/posts')}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition shadow-sm text-sm"
-          >
-            Add New Property
-          </button>
+              onClick={() => navigate('/posts')}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition shadow-sm text-sm"
+            >
+              Add New Property
+            </button>
           </div>
 
           {showFilters && (
@@ -155,10 +181,11 @@ const PropertyList = () => {
                 onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
               >
                 <option value="all">All Prices</option>
-                <option value="under-100k">Under ₹100k</option>
-                <option value="100k-500k">₹100k - ₹500k</option>
-                <option value="500k-1m">₹500k - ₹1M</option>
-                <option value="over-1m">Over ₹1M</option>
+                {priceRanges.map((range) => (
+                  <option key={range.value} value={range.value}>
+                    {range.label}
+                  </option>
+                ))}
               </select>
 
               <select
@@ -179,10 +206,11 @@ const PropertyList = () => {
                 onChange={(e) => setFilters({ ...filters, category: e.target.value })}
               >
                 <option value="all">All Categories</option>
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-                <option value="villa">Villa</option>
-                <option value="condo">Condo</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
 
               <select
@@ -251,9 +279,6 @@ const PropertyList = () => {
                       src={property.image[0]}
                       alt={property.title}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
-                      }}
                     />
                     <div className="absolute top-0 left-0 w-full p-2 flex justify-between items-start">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${

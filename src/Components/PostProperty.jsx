@@ -37,7 +37,7 @@ const CategoryModal = ({ open, onClose, onError, onSuccess, userId }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
-console.log(categoryData)
+
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -333,7 +333,7 @@ const PostProperty = () => {
       });
     }
   };
-console.log(formData);
+
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>

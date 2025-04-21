@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { User, LogOut } from 'lucide-react';
 import { UserContext } from '../Provider/Userprovider';
 import LogoutModal from './auth/LogoutModal';
-
+import profileimage from '../Assets/person-holding-a-glass-of-milk-svgrepo-com.svg'
 const MainNavbar = () => {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -50,7 +50,7 @@ const MainNavbar = () => {
             <div className="relative group">
               <button className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-all duration-200">
                 <img
-                  src={user?.avatar}
+                  src={profileimage}
                   alt={user?.name}
                   className="h-8 w-8 rounded-full border border-gray-200 object-cover"
                 />

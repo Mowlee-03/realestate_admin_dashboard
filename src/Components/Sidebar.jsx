@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Building2, Users, Plus } from 'lucide-react';
 import { UserContext } from '../Provider/Userprovider';
-
+import profileimage from '../Assets/person-holding-a-glass-of-milk-svgrepo-com.svg'
 const Sidebar = () => {
   const { user } = useContext(UserContext);
 
@@ -28,7 +28,7 @@ const Sidebar = () => {
         <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex items-center space-x-3">
             <img
-              src={user?.avatar}
+              src={profileimage}
               alt={user?.name}
               className="h-12 w-12 rounded-full border-2 border-blue-100 object-cover"
             />
