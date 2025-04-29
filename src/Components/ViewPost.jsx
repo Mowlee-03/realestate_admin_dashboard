@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Share2, Heart, Upload, Trash2, Clock, Home, Tag, Info, Check } from 'lucide-react';
 import axios from 'axios';
-import { PROPERTY, UPDATE_PROPERTY, UPLOAD_FILE } from './auth/api';
+import { DELETE_IMAGES, PROPERTY, UPDATE_PROPERTY, UPLOAD_FILE } from './auth/api';
 
 const ViewPost = () => {
   const { id } = useParams();
@@ -16,8 +16,9 @@ const ViewPost = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
+  const [pendingImages, setPendingImages] = useState([]);
+  const [imagesToDelete, setImagesToDelete] = useState([]);
   const fileInputRef = useRef(null);
-console.log(editedProperty);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -36,7 +37,14 @@ console.log(editedProperty);
 
   const handleEditToggle = () => {
     setEditMode(!editMode);
-    if (!editMode) setEditedProperty({ ...property });
+    if (!editMode) {
+      setEditedProperty({ ...property });
+      setPendingImages([]);
+      setImagesToDelete([]);
+    } else {
+      setPendingImages([]);
+      setImagesToDelete([]);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -51,26 +59,50 @@ console.log(editedProperty);
   const handleSave = async () => {
     try {
       setLoading(true);
-  
-      // Convert number fields explicitly
+      setUploading(true);
+
+      // Delete images from Firebase
+      if (imagesToDelete.length > 0) {
+        const data=await axios.post(DELETE_IMAGES, { imageUrls: imagesToDelete });
+        console.log(data);
+        
+      }
+
+      // Upload pending images
+      let updatedImages = [...(editedProperty.image || [])];
+      if (pendingImages.length > 0) {
+        const formData = new FormData();
+        pendingImages.forEach((file) => formData.append('images', file));
+        const response = await axios.post(UPLOAD_FILE, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        updatedImages.push(...response.data.imageUrls); // Match backend response
+      }
+
+      // Update property with new images
       const payload = {
         ...editedProperty,
-        price: parseInt(editedProperty.price) || 0,
+        image: updatedImages,
+        price: parseFloat(editedProperty.price) || 0,
         bedroom: parseInt(editedProperty.bedroom) || 0,
         bathroom: parseInt(editedProperty.bathroom) || 0,
+        area: editedProperty.area|| '',
       };
-  
+
       await axios.put(UPDATE_PROPERTY(id), payload);
       setProperty(payload);
+      setEditedProperty(payload);
+      setPendingImages([]);
+      setImagesToDelete([]);
       setEditMode(false);
     } catch (error) {
-      console.log(error);
-      setError('Failed to update property.');
+      console.error(error);
+      setError('Failed to update property or manage images.');
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
-  
 
   const handleImageClick = (image, index) => {
     setSelectedImage(image);
@@ -108,34 +140,25 @@ console.log(editedProperty);
     }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const files = e.target.files;
     if (!files?.length) return;
 
-    try {
-      setUploading(true);
-      setImageUploadError('');
-      const formData = new FormData();
-      formData.append('images', files[0]);
-      const response = await axios.post(UPLOAD_FILE, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const imageUrl = response.data.imageUrls[0];
-      const updatedImages = [...(editedProperty.image || []), imageUrl];
-      setEditedProperty({ ...editedProperty, image: updatedImages });
-    } catch (error) {
-      console.log(error);
-      
-      setImageUploadError('Failed to upload image.');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    setPendingImages([...pendingImages, ...Array.from(files)]);
+    setImageUploadError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleDeleteImage = (indexToRemove) => {
+    const imageToRemove = editedProperty.image[indexToRemove];
+    setImagesToDelete([...imagesToDelete, imageToRemove]);
     const updatedImages = editedProperty.image.filter((_, index) => index !== indexToRemove);
     setEditedProperty({ ...editedProperty, image: updatedImages });
+  };
+
+  const handleDeletePendingImage = (indexToRemove) => {
+    const updatedPendingImages = pendingImages.filter((_, index) => index !== indexToRemove);
+    setPendingImages(updatedPendingImages);
   };
 
   if (loading) return <LoadingSpinner />;
@@ -146,31 +169,28 @@ console.log(editedProperty);
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Header with gradient background */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 ">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <h1>{property.title}</h1>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Main Card */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-          {/* Property Type Badge */}
           <div className="relative">
             {!editMode && (
               <div className={`absolute top-4 left-4 ${propertyTypeColor} text-white text-sm font-medium px-3 py-1 rounded-full z-10 shadow-md`}>
                 {propertyType}
               </div>
             )}
-            
-            {/* Image Gallery */}
             <div className="relative">
               {editMode ? (
                 <div className="p-6 bg-gray-50 border-b border-gray-100">
                   <ImageEditor
                     images={editedProperty.image}
+                    pendingImages={pendingImages}
                     onDelete={handleDeleteImage}
+                    onDeletePending={handleDeletePendingImage}
                     onUpload={handleImageUpload}
                     uploading={uploading}
                     error={imageUploadError}
@@ -186,7 +206,6 @@ console.log(editedProperty);
             </div>
           </div>
 
-          {/* Property Title and Actions */}
           <div className="p-6 border-b border-gray-100 bg-white">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex-1">
@@ -219,24 +238,26 @@ console.log(editedProperty);
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {/* <button 
-                  onClick={handleShare}
-                  className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-                  title="Share property"
-                >
-                  <Share2 size={20} />
-                </button> */}
                 {editMode ? (
                   <div className="flex gap-2">
                     <button
                       onClick={handleSave}
-                      className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-colors shadow-md"
+                      className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-colors shadow-md relative"
+                      disabled={uploading}
                     >
-                      Save
+                      {uploading ? (
+                        <div className="flex items-center">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Saving...
+                        </div>
+                      ) : (
+                        'Save'
+                      )}
                     </button>
                     <button
                       onClick={handleEditToggle}
                       className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      disabled={uploading}
                     >
                       Cancel
                     </button>
@@ -253,10 +274,8 @@ console.log(editedProperty);
             </div>
           </div>
 
-          {/* Property Details */}
           <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              {/* Price and Key Details */}
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl mb-6 flex flex-wrap items-center justify-between">
                 <h2 className="text-2xl font-bold">
                   {editMode ? (
@@ -265,7 +284,7 @@ console.log(editedProperty);
                       <input
                         type="number"
                         name="price"
-                         min="0"
+                        min="0"
                         value={editedProperty.price || ''}
                         onChange={handleInputChange}
                         className="w-32 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -286,7 +305,7 @@ console.log(editedProperty);
                       <input
                         type="number"
                         name="bedroom"
-                         min="0"
+                        min="0"
                         value={editedProperty.bedroom || ''}
                         onChange={handleInputChange}
                         className="w-16 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -303,9 +322,9 @@ console.log(editedProperty);
                       <input
                         type="number"
                         name="bathroom"
-                         min="0"
+                        min="0"
                         value={editedProperty.bathroom || ''}
-                        onChange={handleInputChange}
+                        on sparsifyChange={handleInputChange}
                         className="w-16 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
                     ) : (
@@ -320,7 +339,7 @@ console.log(editedProperty);
                       <input
                         type="number"
                         name="area"
-                         min="0"
+                        min="0"
                         value={editedProperty.area || ''}
                         onChange={handleInputChange}
                         className="w-20 border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -332,7 +351,6 @@ console.log(editedProperty);
                 </div>
               </div>
 
-              {/* Sold Status Toggle */}
               <div className="mb-6">
                 <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
                   <Home size={20} className="mr-2 text-indigo-500" />
@@ -359,7 +377,6 @@ console.log(editedProperty);
                 </div>
               </div>
 
-              {/* About Section */}
               <div className="mb-8">
                 <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
                   <Info size={20} className="mr-2 text-indigo-500" />
@@ -384,7 +401,6 @@ console.log(editedProperty);
         </div>
       </div>
 
-      {/* Image Preview Dialog */}
       {openImageDialog && (
         <ImageDialog
           image={selectedImage}
@@ -398,7 +414,7 @@ console.log(editedProperty);
   );
 };
 
-// Sub-components remain unchanged
+// Sub-components (unchanged from your original code)
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center min-h-screen bg-gray-50">
     <div className="relative">
@@ -452,13 +468,13 @@ const ImageGallery = ({ images, onImageClick }) => (
   </div>
 );
 
-const ImageEditor = ({ images, onDelete, onUpload, uploading, error, fileInputRef }) => (
+const ImageEditor = ({ images, pendingImages, onDelete, onDeletePending, onUpload, uploading, error, fileInputRef }) => (
   <div>
     <h3 className="text-xl font-bold mb-4 text-gray-800">Manage Images</h3>
     {error && <div className="text-red-500 mb-3 bg-red-50 p-2 rounded-lg">{error}</div>}
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
       {images?.map((image, index) => (
-        <div key={index} className="relative group rounded-lg overflow-hidden shadow-md">
+        <div key={`existing-${index}`} className="relative group rounded-lg overflow-hidden shadow-md">
           <img src={image} alt={`View ${index + 1}`} className="w-full h-32 object-cover" />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300"></div>
           <button
@@ -469,6 +485,25 @@ const ImageEditor = ({ images, onDelete, onUpload, uploading, error, fileInputRe
           </button>
         </div>
       ))}
+      {pendingImages?.map((file, index) => (
+        <div key={`pending-${index}`} className="relative group rounded-lg overflow-hidden shadow-md">
+          <img
+            src={URL.createObjectURL(file)}
+            alt={`Pending ${index + 1}`}
+            className="w-full h-32 object-cover opacity-80"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300"></div>
+          <button
+            onClick={() => onDeletePending(index)}
+            className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+          >
+            <Trash2 size={14} />
+          </button>
+          <div className="absolute bottom-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">
+            Pending
+          </div>
+        </div>
+      ))}
       <div className="border-2 border-dashed border-indigo-200 rounded-lg flex items-center justify-center h-32 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer">
         <input
           ref={fileInputRef}
@@ -476,18 +511,15 @@ const ImageEditor = ({ images, onDelete, onUpload, uploading, error, fileInputRe
           accept="image/*"
           onChange={onUpload}
           className="hidden"
+          multiple
         />
         <button
           onClick={() => fileInputRef.current.click()}
           className="flex flex-col items-center text-indigo-500"
           disabled={uploading}
         >
-          {uploading ? (
-            <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin"></div>
-          ) : (
-            <Upload size={24} />
-          )}
-          <span className="mt-2 text-sm font-medium">{uploading ? 'Uploading...' : 'Add Image'}</span>
+          <Upload size={24} />
+          <span className="mt-2 text-sm font-medium">Add Image</span>
         </button>
       </div>
     </div>

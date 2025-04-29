@@ -224,7 +224,8 @@ const DistrictModal = ({ open, onClose, onSuccess, onError, userId }) => {
 const PostProperty = () => {
   const { user } = useContext(UserContext);
   const fileInputRef = useRef(null);
-  const [images, setImages] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState([]);
@@ -247,6 +248,7 @@ const PostProperty = () => {
   
   const [errors, setErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
   const fetchData = async () => {
     try {
       const [categoriesRes, districtsRes] = await Promise.all([
@@ -259,8 +261,8 @@ const PostProperty = () => {
       console.error('Error fetching data:', error);
     }
   };
-  useEffect(() => {
 
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -280,7 +282,7 @@ const PostProperty = () => {
       if (!formData[field]) tempErrors[field] = message;
     });
 
-    if (!images.length) tempErrors.images = 'At least one image is required';
+    if (!selectedFiles.length) tempErrors.images = 'At least one image is required';
     if (formData.bedroom === '' || formData.bedroom < 0) tempErrors.bedroom = 'Valid number required';
     if (formData.bathroom === '' || formData.bathroom < 0) tempErrors.bathroom = 'Valid number required';
     
@@ -288,13 +290,26 @@ const PostProperty = () => {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleImageChange = async (event) => {
+  const handleImageChange = (event) => {
     const files = Array.from(event.target.files);
     if (!files.length) return;
 
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setSelectedFiles(prev => [...prev, ...files]);
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveImage = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async () => {
+    if (!selectedFiles.length) return [];
+
     setIsUploading(true);
     const formData = new FormData();
-    files.forEach(file => formData.append('images', file));
+    selectedFiles.forEach(file => formData.append('images', file));
 
     try {
       const response = await axios.post(UPLOAD_FILE, formData, {
@@ -303,9 +318,9 @@ const PostProperty = () => {
           setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
         }
       });
-      setImages(prev => [...prev, ...response.data.imageUrls]);
+      return response.data.imageUrls;
     } catch (error) {
-      setSnackbar({ open: true, message: 'Image upload failed', severity: 'error' });
+      throw new Error('Image upload failed');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -317,23 +332,31 @@ const PostProperty = () => {
     if (!validate()) return;
 
     try {
-      await axios.post(POST_PROPERTY(user.id), { ...formData, images });
+      const imageUrls = await uploadImages();
+      await axios.post(POST_PROPERTY(user.id), { ...formData, images: imageUrls });
       setSnackbar({ open: true, message: 'Property posted successfully!', severity: 'success' });
       setFormData({
         title: '', price: '', location: '', description: '', type: 'sale',
         bedroom: '', bathroom: '', area: '', category: '', district: ''
       });
-      setImages([]);
+      setSelectedFiles([]);
+      setImagePreviews([]);
       setErrors({});
     } catch (error) {
       setSnackbar({ 
         open: true, 
-        message: error.response?.data?.message || 'Failed to post property', 
+        message: error.message || error.response?.data?.message || 'Failed to post property', 
         severity: 'error' 
       });
     }
   };
 
+  // Cleanup preview URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
@@ -436,7 +459,7 @@ const PostProperty = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-            <TextField
+              <TextField
                 label="Area (sq ft)"
                 type="text"
                 fullWidth
@@ -453,7 +476,6 @@ const PostProperty = () => {
                 required
                 InputProps={{ inputProps: { min: 0 } }}
               />
-
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -588,7 +610,7 @@ const PostProperty = () => {
               )}
 
               <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                {images.map((image, index) => (
+                {imagePreviews.map((image, index) => (
                   <Box key={index} sx={{ position: 'relative' }}>
                     <img
                       src={image}
@@ -609,7 +631,7 @@ const PostProperty = () => {
                         bgcolor: 'white',
                         '&:hover': { bgcolor: 'grey.200' }
                       }}
-                      onClick={() => setImages(prev => prev.filter((_, i) => i !== index))}
+                      onClick={() => handleRemoveImage(index)}
                     >
                       <X />
                     </IconButton>
