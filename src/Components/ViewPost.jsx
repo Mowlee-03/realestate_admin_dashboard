@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Bed, Bath, Square, Share2, Heart, Upload, Trash2, Clock, Home, Tag, Info, Check } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, Share2, Heart, Upload, Trash2, Clock, Home, Tag, Info, Check,DeleteIcon } from 'lucide-react';
 import axios from 'axios';
-import { DELETE_IMAGES, PROPERTY, UPDATE_PROPERTY, UPLOAD_FILE } from './auth/api';
+import { DELETE_IMAGES, DELETE_PROPERTY, PROPERTY, UPDATE_PROPERTY, UPLOAD_FILE } from './auth/api';
+import { DeleteOutline } from '@mui/icons-material';
 
 const ViewPost = () => {
   const { id } = useParams();
@@ -19,7 +20,7 @@ const ViewPost = () => {
   const [pendingImages, setPendingImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
   const fileInputRef = useRef(null);
-
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   useEffect(() => {
     const fetchProperty = async () => {
       try {
@@ -166,7 +167,30 @@ const ViewPost = () => {
 
   const propertyType = property.type === 'rent' ? 'For Rent' : 'For Sale';
   const propertyTypeColor = property.type === 'rent' ? 'bg-purple-600' : 'bg-green-600';
+  const handledeleteproperty = () => {
+    setShowDeleteModal(true);
+  };
+ const handleConfirmDelete = async () => {
+  try {
+    setLoading(true);
+    
+    // First delete images from Firebase if they exist
+    if (property.image && property.image.length > 0) {
+      await axios.post(DELETE_IMAGES, { imageUrls: property.image });
+    }
 
+    // Then delete the property record
+    await axios.delete(DELETE_PROPERTY(id));
+
+    // Redirect after successful deletion
+    window.location.href = '/properties'; // or your preferred redirect path
+  } catch (error) {
+    console.error('Error deleting property:', error);
+    setError('Failed to delete property. ' + (error.response?.data?.message || ''));
+    setShowDeleteModal(false);
+    setLoading(false);
+  }
+};
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4">
@@ -263,12 +287,21 @@ const ViewPost = () => {
                     </button>
                   </div>
                 ) : (
+                <div>
+                  <button
+                    onClick={handledeleteproperty}
+                    className="px-5 py-2 mr-3 bg-gradient-to-r from-red-600 to-red-400 text-white rounded-lg hover:opacity-90 transition-colors shadow-md"
+                  >
+                    <DeleteOutline/>
+                  </button>
                   <button
                     onClick={handleEditToggle}
                     className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-colors shadow-md"
                   >
                     Edit
                   </button>
+                </div>
+                  
                 )}
               </div>
             </div>
@@ -410,10 +443,40 @@ const ViewPost = () => {
           onNavigate={navigateImage}
         />
       )}
+      {showDeleteModal && (
+  <DeleteConfirmationModal
+    onConfirm={handleConfirmDelete}
+    onCancel={() => setShowDeleteModal(false)}
+    propertyTitle={property.title}
+  />
+)}
     </div>
   );
 };
-
+const DeleteConfirmationModal = ({ onConfirm, onCancel, propertyTitle }) => (
+  <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+      <h3 className="text-xl font-bold text-gray-800 mb-4">Confirm Deletion</h3>
+      <p className="text-gray-600 mb-6">
+        Are you sure you want to delete "{propertyTitle}"? This action cannot be undone.
+      </p>
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Delete Property
+        </button>
+      </div>
+    </div>
+  </div>
+);
 // Sub-components (unchanged from your original code)
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center min-h-screen bg-gray-50">

@@ -13,7 +13,7 @@ export const DELETE_IMAGES=`${API_BASE_URL}/post/delete-images`
 export const VIEW_ALL_PROPERTY=`${API_BASE_URL}/post/viewallpost`
 export const PROPERTY = (propertyId) => `${API_BASE_URL}/post/${propertyId}`
 export const UPDATE_PROPERTY=(id)=>`${API_BASE_URL}/post/updatepost/${id}`
-
+export const DELETE_PROPERTY=(id)=>`${API_BASE_URL}/post/delete/${id}`
 export const USERS_DATA=`${API_BASE_URL}/user/get_all_users`
 
 export const ADD_CATEGORY=(adminId)=>`${API_BASE_URL}/admin/addcategory/${adminId}`

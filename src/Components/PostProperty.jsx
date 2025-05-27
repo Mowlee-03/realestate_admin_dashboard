@@ -33,36 +33,36 @@ import { UserContext } from '../Provider/Userprovider';
 // Enhanced Category Modal
 const CategoryModal = ({ open, onClose, onError, onSuccess, userId }) => {
   const [categoryData, setCategoryData] = useState({ name: '', description: '', image: '' });
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [previewImage, setPreviewImage] = useState(null);
-  const fileInputRef = useRef(null);
+  // const [isUploading, setIsUploading] = useState(false);
+  // const [uploadProgress, setUploadProgress] = useState(0);
+  // const [previewImage, setPreviewImage] = useState(null);
+  // const fileInputRef = useRef(null);
 
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  // const handleImageUpload = async (event) => {
+  //   const file = event.target.files[0];
+  //   if (!file) return;
 
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('images', file);
+  //   setIsUploading(true);
+  //   const formData = new FormData();
+  //   formData.append('images', file);
 
-    try {
-      const response = await axios.post(UPLOAD_FILE, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
-        }
-      });
+  //   try {
+  //     const response = await axios.post(UPLOAD_FILE, formData, {
+  //       headers: { 'Content-Type': 'multipart/form-data' },
+  //       onUploadProgress: (progressEvent) => {
+  //         setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+  //       }
+  //     });
       
-      const imagePath = response.data.imageUrls[0];
-      setCategoryData(prev => ({ ...prev, image: imagePath }));
-      setPreviewImage(imagePath);
-    } catch (error) {
-      onError('Failed to upload image');
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  //     const imagePath = response.data.imageUrls[0];
+  //     setCategoryData(prev => ({ ...prev, image: imagePath }));
+  //     setPreviewImage(imagePath);
+  //   } catch (error) {
+  //     onError('Failed to upload image');
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,7 +101,7 @@ const CategoryModal = ({ open, onClose, onError, onSuccess, userId }) => {
           variant="outlined"
         />
         
-        <Box
+        {/* <Box
           sx={{
             border: '2px dashed',
             borderColor: 'grey.400',
@@ -158,14 +158,14 @@ const CategoryModal = ({ open, onClose, onError, onSuccess, userId }) => {
               <X />
             </IconButton>
           </Box>
-        )}
+        )} */}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={!categoryData.name || !categoryData.image || isUploading}
+          disabled={!categoryData.name}
         >
           Add Category
         </Button>

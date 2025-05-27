@@ -167,7 +167,7 @@ export default function Dashboard() {
       {
         data: [soldPropertiesCount.sold, soldPropertiesCount.unsold],
         label: "Properties Status",
-        color: ["#22c55e", "#3b82f6"], // Changed colors: green for sold, blue for available
+        color: ["#22c55e"], 
       },
     ],
   }
@@ -293,14 +293,7 @@ export default function Dashboard() {
           <p className="text-gray-500 text-sm">Overview of property listings and sales</p>
         </div>
         <div className="flex items-center space-x-2">
-          <button className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
-          </button>
-          <button className="flex items-center px-3 py-1.5 bg-rose-500 text-white rounded-lg text-sm hover:bg-rose-600 transition-colors">
-            <Download className="h-4 w-4 mr-1" />
-            Export
-          </button>
+         
         </div>
       </div>
 
