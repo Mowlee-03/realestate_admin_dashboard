@@ -23,3 +23,9 @@ export const GET_CATEGORIES=`${API_BASE_URL}/admin/getcategory`
 export const PROPERTIES_IN_CATEGORY=`${API_BASE_URL}/admin/propety_in_category`
 export const PROPERTIES_IN_DISTRICT=`${API_BASE_URL}/admin/propety_in_district`
 export const PROPERTIES_COUNT=`${API_BASE_URL}/admin/propety_count`
+
+
+export const GET_COMMISSION_BY_ID=(id)=>`${API_BASE_URL}/commission/post/${id}`
+export const CREATE_COMMISSION=`${API_BASE_URL}/commission/`
+export const UPDATE_COMMISSION_BY_ID=(id)=>`${API_BASE_URL}/commission/${id}`
+export const DELETE_COMMISSION=(id)=>`${API_BASE_URL}/commission/${id}`

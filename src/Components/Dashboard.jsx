@@ -5,7 +5,7 @@ import { LineChart, BarChart, PieChart } from "@mui/x-charts"
 import { DataGrid } from "@mui/x-data-grid"
 import { Building2, Users, DollarSign, Home, ArrowUpRight, Search, Filter, Download, RefreshCw } from "lucide-react"
 import axios from "axios"
-import { PROPERTIES_COUNT, PROPERTIES_IN_CATEGORY, PROPERTIES_IN_DISTRICT, USERS_DATA } from "./auth/api"
+import { PROPERTIES_COUNT, PROPERTIES_IN_CATEGORY, PROPERTIES_IN_DISTRICT, USERS_DATA, VIEW_ALL_PROPERTY } from "./auth/api"
 
 export default function Dashboard() {
   const [propertiesInCategory, setPropertiesInCategory] = useState([])
@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("category")
   const [searchTerm, setSearchTerm] = useState("")
-
+  const [listProperties,setListproperties]=useState([])
   // Mock data for property cost analysis (will be replaced with API data later)
   const propertyCostData = {
     totalSales: 4850000,
@@ -44,17 +44,20 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [categoryRes, districtRes, usersRes, propertiesRes] = await Promise.all([
+      const [categoryRes, districtRes, usersRes, propertiesRes,listproperty] = await Promise.all([
         axios.get(PROPERTIES_IN_CATEGORY),
         axios.get(PROPERTIES_IN_DISTRICT),
         axios.get(USERS_DATA),
         axios.get(PROPERTIES_COUNT),
+        axios.get(VIEW_ALL_PROPERTY),
       ])
+
 
       setPropertiesInCategory(categoryRes.data.data)
       setPropertiesInDistrict(districtRes.data.data)
       setUsers(usersRes.data.data)
       setProperties(propertiesRes.data.data)
+      setListproperties(listproperty.data.data)
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
     } finally {
@@ -228,7 +231,9 @@ export default function Dashboard() {
   }
 
   // Mock data for property listings table
-  const propertyListings = properties.map((property, index) => ({
+  console.log(listProperties);
+  
+  const propertyListings = listProperties.map((property, index) => ({
     id: property.id || index + 1,
     title: property.title || `Property ${index + 1}`,
     location: property.location || `Location ${index + 1}`,
@@ -246,7 +251,7 @@ export default function Dashboard() {
       field: "price",
       headerName: "Price",
       width: 120,
-      renderCell: (params) => `$${params.value.toLocaleString()}`,
+      renderCell: (params) => `₹${params.value.toLocaleString()}`,
     },
     {
       field: "status",
@@ -267,7 +272,7 @@ export default function Dashboard() {
       field: "date",
       headerName: "Listed Date",
       width: 150,
-      valueFormatter: (params) => new Date(params.value).toLocaleDateString(),
+      valueFormatter: (params) => params.value,
     },
   ]
 
@@ -442,6 +447,7 @@ export default function Dashboard() {
           <div className="h-[180px] flex justify-center">
             {activeTab === "category" ? (
               <PieChart
+                
                 series={dynamicCategoryData.series}
                 height={dynamicCategoryData.height}
                 margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
@@ -452,6 +458,7 @@ export default function Dashboard() {
               />
             ) : (
               <PieChart
+              
                 series={dynamicDistrictData.series}
                 height={dynamicDistrictData.height}
                 margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
@@ -480,10 +487,6 @@ export default function Dashboard() {
               />
               <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
-            <button className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-              <Filter className="h-4 w-4 mr-1" />
-              Filter
-            </button>
           </div>
         </div>
         <div style={{ height: 270, width: "100%" }}>
