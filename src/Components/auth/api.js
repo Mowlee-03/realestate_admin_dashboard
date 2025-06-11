@@ -29,3 +29,4 @@ export const GET_COMMISSION_BY_ID=(id)=>`${API_BASE_URL}/commission/post/${id}`
 export const CREATE_COMMISSION=`${API_BASE_URL}/commission/`
 export const UPDATE_COMMISSION_BY_ID=(id)=>`${API_BASE_URL}/commission/${id}`
 export const DELETE_COMMISSION=(id)=>`${API_BASE_URL}/commission/${id}`
+export const COMMISSION_DATA=`${API_BASE_URL}/commission/data`

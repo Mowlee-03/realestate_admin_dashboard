@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import { LineChart, BarChart, PieChart } from "@mui/x-charts"
 import { DataGrid } from "@mui/x-data-grid"
-import { Building2, Users, DollarSign, Home, ArrowUpRight, Search, Filter, Download, RefreshCw } from "lucide-react"
+import { Building2, Users, DollarSign, Home, ArrowUpRight, Search, Filter, Download, RefreshCw, Calendar, IndianRupee } from "lucide-react"
 import axios from "axios"
-import { PROPERTIES_COUNT, PROPERTIES_IN_CATEGORY, PROPERTIES_IN_DISTRICT, USERS_DATA, VIEW_ALL_PROPERTY } from "./auth/api"
+import { COMMISSION_DATA, PROPERTIES_COUNT, PROPERTIES_IN_CATEGORY, PROPERTIES_IN_DISTRICT, USERS_DATA, VIEW_ALL_PROPERTY } from "./auth/api"
 
 export default function Dashboard() {
   const [propertiesInCategory, setPropertiesInCategory] = useState([])
@@ -16,8 +16,12 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("category")
   const [searchTerm, setSearchTerm] = useState("")
-  const [listProperties,setListproperties]=useState([])
-  // Mock data for property cost analysis (will be replaced with API data later)
+  const [listProperties, setListproperties] = useState([])
+  const [commissions, setCommissions] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([]);
+
+  // Mock data for property cost analysis
   const propertyCostData = {
     totalSales: 4850000,
     averageSalePrice: 485000,
@@ -44,14 +48,17 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [categoryRes, districtRes, usersRes, propertiesRes,listproperty] = await Promise.all([
+      const [categoryRes, districtRes, usersRes, propertiesRes, listproperty, commissionRes] = await Promise.all([
         axios.get(PROPERTIES_IN_CATEGORY),
         axios.get(PROPERTIES_IN_DISTRICT),
         axios.get(USERS_DATA),
         axios.get(PROPERTIES_COUNT),
         axios.get(VIEW_ALL_PROPERTY),
+        axios.get(COMMISSION_DATA)
       ])
-
+      setCommissions(commissionRes.data.data);
+      const years = [...new Set(commissionRes.data.data.map(c => new Date(c.createdAt).getFullYear()))];
+      setAvailableYears(years.sort((a, b) => b - a));
 
       setPropertiesInCategory(categoryRes.data.data)
       setPropertiesInDistrict(districtRes.data.data)
@@ -94,31 +101,111 @@ export default function Dashboard() {
     monthlyPropertyCount[month]++
   })
 
-  // Stats cards data - MODIFIED: Removed sold and available properties cards, added total sales card
+  const getCommissionDataByYear = (year) => {
+    const yearlyCommissions = commissions.filter(
+      c => new Date(c.createdAt).getFullYear() === year
+    );
+    
+    const monthlyCommissions = new Array(12).fill(0);
+    yearlyCommissions.forEach(commission => {
+      const month = new Date(commission.createdAt).getMonth();
+      monthlyCommissions[month] += commission.amount;
+    });
+    
+    const totalCommission = yearlyCommissions.reduce((sum, c) => sum + c.amount, 0);
+    const averageCommission = yearlyCommissions.length > 0 
+      ? totalCommission / yearlyCommissions.length 
+      : 0;
+    
+    return {
+      monthlyCommissions,
+      totalCommission,
+      averageCommission,
+      transactions: yearlyCommissions.length,
+      commissionList: yearlyCommissions.map(c => ({
+        id: c.id,
+        property: c.post.title,
+        propertyValue: c.post.price,
+        commissionValue: c.amount,
+        date: new Date(c.createdAt).toLocaleDateString(),
+        notes: c.notes
+      }))
+    };
+  };
+
+  // Get current year's commission data
+  const currentYearCommissionData = getCommissionDataByYear(selectedYear);
+
+  // Stats cards data
   const stats = [
     {
       title: "Total Properties",
       value: properties.length,
       icon: <Building2 className="h-5 w-5" />,
       color: "bg-rose-100 text-rose-600",
-      increase: "+12%",
     },
     {
       title: "Active Users",
       value: users.length,
       icon: <Users className="h-5 w-5" />,
       color: "bg-emerald-100 text-emerald-600",
-      increase: "+8%",
     },
     {
-      title: "Total Sales (Year)",
-      value: propertyCostData.totalSales,
-      icon: <DollarSign className="h-5 w-5" />,
-      color: "bg-blue-100 text-blue-600",
-      increase: "+18%",
+      title: "Total Commission",
+      value: currentYearCommissionData.totalCommission,
+      icon: <IndianRupee className="h-5 w-5" />,
+      color: "bg-purple-100 text-purple-600",
       format: true,
-    },
+    }
   ]
+
+  // Commission chart data
+  const commissionChartData = {
+    xAxis: [
+      {
+        data: monthNames,
+        scaleType: "band",
+      },
+    ],
+    series: [
+      {
+        data: currentYearCommissionData.monthlyCommissions,
+        label: "Monthly Commissions (₹)",
+        color: "#8b5cf6",
+        area: true,
+        showMark: false,
+      },
+    ],
+  };
+
+  // Commission columns for DataGrid
+  const commissionColumns = [
+    { field: 'id', headerName: 'ID', width: 70 },
+    { field: 'property', headerName: 'Property', width: 200 },
+    { 
+      field: 'propertyValue', 
+      headerName: 'Property Amount', 
+      width: 150,
+      renderCell: (params) => `₹${params.value.toLocaleString()}`
+    },
+    { 
+      field: 'commissionValue', 
+      headerName: 'Commission Amount', 
+      width: 120,
+      renderCell: (params) => `₹${params.value.toLocaleString()}`
+    },
+    { field: 'date', headerName: 'Date', width: 120 },
+    { 
+      field: 'notes', 
+      headerName: 'Notes', 
+      width: 120,
+      renderCell: (params) => (
+        <span className='px-2 py-1 rounded-full text-xs'>
+          {params.value ? params.value : 'N/A'}
+        </span>
+      )
+    },
+  ];
 
   // User growth chart data
   const userGrowthChartData = {
@@ -158,7 +245,7 @@ export default function Dashboard() {
     ],
   }
 
-  // Sold vs Unsold properties chart data - MODIFIED: Updated colors for better differentiation
+  // Sold vs Unsold properties chart data
   const soldPropertiesChartData = {
     xAxis: [
       {
@@ -171,25 +258,6 @@ export default function Dashboard() {
         data: [soldPropertiesCount.sold, soldPropertiesCount.unsold],
         label: "Properties Status",
         color: ["#22c55e"], 
-      },
-    ],
-  }
-
-  // Property cost analysis chart data
-  const propertyCostChartData = {
-    xAxis: [
-      {
-        data: monthNames,
-        scaleType: "band",
-      },
-    ],
-    series: [
-      {
-        data: propertyCostData.monthlySales,
-        label: "Monthly Sales ($)",
-        color: "#3b82f6",
-        area: true,
-        showMark: false,
       },
     ],
   }
@@ -230,9 +298,6 @@ export default function Dashboard() {
     height: 200,
   }
 
-  // Mock data for property listings table
-  console.log(listProperties);
-  
   const propertyListings = listProperties.map((property, index) => ({
     id: property.id || index + 1,
     title: property.title || `Property ${index + 1}`,
@@ -291,70 +356,38 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 bg-gray-50">
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-2 sm:p-4 bg-gray-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Real Estate Dashboard</h1>
-          <p className="text-gray-500 text-sm">Overview of property listings and sales</p>
-        </div>
-        <div className="flex items-center space-x-2">
-         
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Real Estate Dashboard</h1>
+          <p className="text-gray-500 text-xs sm:text-sm">Overview of property listings and sales</p>
         </div>
       </div>
 
-      {/* Stats Cards - MODIFIED: Now 3 cards instead of 4 */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      {/* Stats Cards - Responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 transition-all duration-200 hover:shadow-md"
+            className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4 transition-all duration-200 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <div className={`p-2 rounded-lg ${stat.color}`}>{stat.icon}</div>
-              <div className="flex items-center">
-                <span className="text-green-500 text-xs mr-1">{stat.increase}</span>
-                <ArrowUpRight className="h-3 w-3 text-green-500" />
-              </div>
             </div>
-            <p className="text-xl font-bold mt-2 mb-0.5">
-              {stat.format ? `$${stat.value.toLocaleString()}` : stat.value.toLocaleString()}
+            <p className="text-lg sm:text-xl font-bold mt-2 mb-0.5">
+              {stat.format ? ` ₹${stat.value.toLocaleString()}` : stat.value.toLocaleString()}
             </p>
             <p className="text-xs text-gray-500">{stat.title}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        {/* Property Cost Analysis */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 col-span-2">
+      {/* First Row - Property Status and Commission Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
+        {/* Property Status */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">Property Sales Analysis</h2>
-            <div className="flex space-x-2">
-              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                Total: ${propertyCostData.totalSales.toLocaleString()}
-              </span>
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                Avg: ${propertyCostData.averageSalePrice.toLocaleString()}
-              </span>
-            </div>
-          </div>
-          <div className="h-[180px]">
-            <LineChart
-              xAxis={propertyCostChartData.xAxis}
-              series={propertyCostChartData.series}
-              height={180}
-              margin={{ top: 10, right: 10, bottom: 20, left: 40 }}
-              slotProps={{
-                legend: { hidden: true },
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Property Status - MODIFIED: Updated with different colors and added more detail in the heading */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">Property Status</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800">Property Status</h2>
             <div className="flex space-x-1">
               <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
                 {soldPropertiesCount.sold} Sold
@@ -364,11 +397,11 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-          <div className="h-[180px]">
+          <div className="h-[160px] sm:h-[180px]">
             <BarChart
               xAxis={soldPropertiesChartData.xAxis}
               series={soldPropertiesChartData.series}
-              height={180}
+              height={160}
               margin={{ top: 10, right: 10, bottom: 20, left: 40 }}
               slotProps={{
                 legend: { hidden: true },
@@ -376,22 +409,117 @@ export default function Dashboard() {
             />
           </div>
         </div>
+     
+        {/* Commission Summary */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4 lg:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2 sm:gap-0">
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800">Commission Summary</h2>
+            <div className="flex items-center gap-2">
+              {/* <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                {selectedYear}
+              </span> */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <Calendar className="h-3 sm:h-4 w-3 sm:w-4 text-gray-500 ml-1 sm:ml-2" />
+                <select 
+                  className="bg-transparent text-xs sm:text-sm border-none focus:ring-0"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                >
+                  {availableYears.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 justify-center ">
+            <div className="p-4 bg-purple-100 rounded-md">
+              <p className="text-xs text-gray-500">Total Commission</p>
+              <p className="text-base sm:text-lg font-bold">₹{currentYearCommissionData.totalCommission.toLocaleString()}</p>
+            </div>
+            <div className="p-4 bg-orange-100 rounded-md">
+              <p className="text-xs text-gray-500">Avg per Sale</p>
+              <p className="text-base sm:text-lg font-bold">₹{Math.round(currentYearCommissionData.averageCommission).toLocaleString()}</p>
+            </div>
+            <div className="p-4 bg-green-100 rounded-md">
+              <p className="text-xs text-gray-500">Transactions</p>
+              <p className="text-base sm:text-lg font-bold">{currentYearCommissionData.transactions}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      {/* Commission Analysis */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2 sm:gap-0">
+          <h2 className="text-sm sm:text-base font-semibold text-gray-800">Sales Commission Analysis</h2>
+          <div className="flex items-center space-x-2">
+            <span className="hidden sm:inline text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+              Total: ₹{currentYearCommissionData.totalCommission.toLocaleString()}
+            </span>
+            <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+              Transactions: {currentYearCommissionData.transactions}
+            </span>
+          </div>
+        </div>
+        <div >
+          <LineChart
+            xAxis={commissionChartData.xAxis}
+            series={commissionChartData.series}
+            height={250}
+            margin={{ top: 10, right: 10, bottom: 20, left: 40 }}
+            slotProps={{
+              legend: { hidden: true },
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Commission Details Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm sm:text-base font-semibold text-gray-800">Commission Details</h2>
+        </div>
+        <div style={{ height: 300, width: '100%' }}>
+          <DataGrid
+            rows={currentYearCommissionData.commissionList}
+            columns={commissionColumns}
+            initialState={{
+              pagination: {
+                paginationModel: { page: 0, pageSize: 5 },
+              },
+            }}
+            pageSizeOptions={[5, 10]}
+            checkboxSelection
+            disableRowSelectionOnClick
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-cell:focus': {
+                outline: 'none',
+              },
+              '& .MuiDataGrid-columnHeader:focus': {
+                outline: 'none',
+              },
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1   gap-3 sm:gap-4 mb-4">
         {/* User Growth */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">User Growth</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800">User Growth</h2>
             <span className="text-xs px-2 py-1 bg-rose-100 text-rose-700 rounded-full">
               +{monthlyUserCount.reduce((a, b) => a + b, 0)} users
             </span>
           </div>
-          <div className="h-[180px]">
+          <div >
             <LineChart
               xAxis={userGrowthChartData.xAxis}
               series={userGrowthChartData.series}
-              height={180}
+              height={220}
               margin={{ top: 10, right: 10, bottom: 20, left: 40 }}
               slotProps={{
                 legend: { hidden: true },
@@ -401,18 +529,18 @@ export default function Dashboard() {
         </div>
 
         {/* Property Trend */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">Property Listings</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800">Property Listings</h2>
             <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">
               +{monthlyPropertyCount.reduce((a, b) => a + b, 0)} properties
             </span>
           </div>
-          <div className="h-[180px]">
+          <div >
             <LineChart
               xAxis={propertyTrendData.xAxis}
               series={propertyTrendData.series}
-              height={180}
+              height={220}
               margin={{ top: 10, right: 10, bottom: 20, left: 40 }}
               slotProps={{
                 legend: { hidden: true },
@@ -422,9 +550,9 @@ export default function Dashboard() {
         </div>
 
         {/* Property Distribution */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">Property Distribution</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800">Property Distribution</h2>
             <div className="flex bg-gray-100 rounded-lg p-0.5">
               <button
                 className={`px-2 py-0.5 text-xs rounded-md transition-all ${
@@ -444,12 +572,11 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
-          <div className="h-[180px] flex justify-center">
+          <div className="h-[160px] sm:h-[180px] flex justify-center">
             {activeTab === "category" ? (
               <PieChart
-                
                 series={dynamicCategoryData.series}
-                height={dynamicCategoryData.height}
+                height={160}
                 margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
                 colors={["#ec4899", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"]}
                 slotProps={{
@@ -458,9 +585,8 @@ export default function Dashboard() {
               />
             ) : (
               <PieChart
-              
                 series={dynamicDistrictData.series}
-                height={dynamicDistrictData.height}
+                height={160}
                 margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
                 colors={["#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6"]}
                 slotProps={{
@@ -473,19 +599,19 @@ export default function Dashboard() {
       </div>
 
       {/* Property Listings Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-800">Latest Properties</h2>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2 sm:gap-0">
+          <h2 className="text-sm sm:text-base font-semibold text-gray-800">Latest Properties</h2>
           <div className="flex items-center space-x-2">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search properties..."
-                className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500"
+                className="pl-8 pr-3 py-1 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
             </div>
           </div>
         </div>
