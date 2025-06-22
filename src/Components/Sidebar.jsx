@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { Home, Building2, Users, Plus } from 'lucide-react';
 import { UserContext } from '../Provider/Userprovider';
 import profileimage from '../Assets/person-holding-a-glass-of-milk-svgrepo-com.svg'
+import logo from '../Assets/Logo.png'
+import logoName from '../Assets/LogoName.png'
 const Sidebar = () => {
   const { user } = useContext(UserContext);
 
@@ -18,10 +20,10 @@ const Sidebar = () => {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block fixed inset-y-0 left-0 z-40 w-64 bg-white/90 backdrop-blur-lg shadow-xl">
         {/* Desktop header */}
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            Real Estate Admin
-          </h1>
+        <div className="p-4 border-b  border-gray-100 flex items-center justify-center gap-3">
+          <img src={logo} alt="logo" className='h-10 w-auto'/>
+          <img src={logoName} alt="logo" className='h-10 w-auto'/>
+        
         </div>
 
         {/* Admin Profile Section */}
