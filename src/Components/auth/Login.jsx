@@ -46,10 +46,10 @@ const Login = () => {
 
     try {
       const response = await axios.post(LOGIN_ADMIN, formData);
-      console.log(response);
+
 
       const token = response.data.authToken;
-      console.log(token);
+
       
       login(token); // ✅ Manually update user state
 
